@@ -85,7 +85,39 @@ function b64toBlob(win, b64Data, contentType, sliceSize) {
   return new win.Blob(byteArrays, {type: contentType});
 }
 
-function setPersistantAttrs(win){
+function firstInstallTour(win) {
+  if (win.activeInstall) {
+    win.activeInstall = false;
+    let button = win.document.getElementById('side-tabs-button');
+    let panel = win.document.createElement('panel');
+    let outerbox = win.document.createElement('vbox', 'onboard-panel-box');
+    let instructions = win.document.createElement('description');
+    let progressButton = win.document.createElement('button', 'progress-button');
+    win.document.getElementById('mainPopupSet').appendChild(panel);
+    panel.setAttribute('id', 'tour-panel');
+    panel.setAttribute('type', 'arrow');
+    panel.style.width = '200px';
+    panel.style.height = '400px';
+    instructions.textContent = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum';
+    instructions.style.width = '200px';
+    progressButton.setAttribute('label', 'test');
+    progressButton.classList.add('default');
+    progressButton.style.display = 'block';
+    progressButton.style.width = '200px';
+    progressButton.style.height = '50px';
+    progressButton.onclick = function () {
+      panel.hidePopup();
+    };
+
+    panel.appendChild(outerbox);
+    outerbox.appendChild(instructions);
+    outerbox.appendChild(progressButton);
+
+    panel.openPopup(button, 'bottomcenter topright', 0, 0, false, false);
+  }
+}
+
+function setPersistantAttrs(win) {
   let mainWindow = win.document.getElementById('main-window');
   mainWindow.setAttribute('persist', mainWindow.getAttribute('persist') + ' tabspinned tabspinnedwidth toggledon');
   try {
@@ -98,6 +130,7 @@ function setPersistantAttrs(win){
     }
     // on fresh windows getWindowValue throws an exception. Ignore this.
   }
+  mainWindow.setAttribute('toggledon', 'false'); //TODO: temporary for testing
 }
 
 function initWindow(window) {
@@ -142,11 +175,13 @@ function initWindow(window) {
   if (isDocumentLoaded(win)) {
     setPersistantAttrs(win);
     addVerticalTabs(win, data);
+    firstInstallTour(win);
   } else {
     // Listen for load event before checking the window type
     win.addEventListener('load', () => {
       setPersistantAttrs(win);
       addVerticalTabs(win, data);
+      firstInstallTour(win);
     }, {once: true});
   }
 }
@@ -182,6 +217,10 @@ exports.main = function (options, callbacks) {
       for (let tab of reversedTabs) {
         tabbrowser.appendChild(tab, tabbrowser.firstChild);
       }
+    }
+    //show onboarding experience in the active on "install"
+    if (browserWindows.activeWindow === window && options.loadReason === 'install') {
+      win.activeInstall = true;
     }
     initWindow(window);
   }
